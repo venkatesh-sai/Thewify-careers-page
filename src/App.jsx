@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import {
   ArrowUpRight,
@@ -23,8 +23,14 @@ import {
   ChevronDown,
   Send,
   CheckCircle2,
+  Facebook,
   Linkedin,
-  Instagram
+  Instagram,
+  MessageCircle,
+  Bot,
+  Search,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 
@@ -90,10 +96,267 @@ function CyberCardEffects() {
 }
 
 
+const chatPrompts = [
+  'What roles are open?',
+  'What is life at TheWiFy like?',
+  'How do I apply?'
+];
+
+function getChatReply(message) {
+  const normalizedMessage = message.toLowerCase();
+
+  if (normalizedMessage.includes('role') || normalizedMessage.includes('open') || normalizedMessage.includes('job')) {
+    return `We currently have ${roles.length} opportunities: ${roles.map(role => role.title).join(', ')}. You can explore each role in the Open roles section below.`;
+  }
+
+  if (
+    normalizedMessage.includes('life') ||
+    normalizedMessage.includes('culture') ||
+    normalizedMessage.includes('benefit') ||
+    normalizedMessage.includes('work')
+  ) {
+    return 'TheWiFy values ownership, continuous learning and collaboration. We aim to give people the trust, clarity and space to do their best work.';
+  }
+
+  if (
+    normalizedMessage.includes('apply') ||
+    normalizedMessage.includes('application') ||
+    normalizedMessage.includes('resume') ||
+    normalizedMessage.includes('cv')
+  ) {
+    return 'Choose a role above to start an application, or use the introduction form at the bottom of the page to tell us what you do best.';
+  }
+
+  if (
+    normalizedMessage.includes('where') ||
+    normalizedMessage.includes('location') ||
+    normalizedMessage.includes('remote') ||
+    normalizedMessage.includes('hybrid')
+  ) {
+    return 'Our current opportunities are based in Hyderabad or India, with hybrid, on-site and remote arrangements depending on the role.';
+  }
+
+  return 'I can help with open roles, team culture, locations and how to apply. Try one of the quick questions below.';
+}
+
+function CareersChat({ onApply }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [messages, setMessages] = useState([
+    {
+      id: 'welcome',
+      sender: 'bot',
+      text: 'Hello! I’m Nova, an AI assistant here to help you explore careers at TheWiFy. What would you like to know?'
+    }
+  ]);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [isOpen, messages]);
+
+  const sendMessage = message => {
+    const text = message.trim();
+
+    if (!text) {
+      return;
+    }
+
+    setMessages(currentMessages => [
+      ...currentMessages,
+      { id: `${Date.now()}-user`, sender: 'user', text },
+      { id: `${Date.now()}-bot`, sender: 'bot', text: getChatReply(text) }
+    ]);
+    setDraft('');
+  };
+
+  const submitMessage = event => {
+    event.preventDefault();
+    sendMessage(draft);
+  };
+
+  return (
+    <div className={`careers-chat${isOpen ? ' is-open' : ''}`}>
+      {isOpen && (
+        <section
+          className="careers-chat-panel"
+          aria-label="Nova AI careers assistant"
+        >
+          <div className="careers-chat-header">
+            <div className="careers-chat-agent">
+              <span className="careers-chat-avatar">
+                <Bot size={19} />
+              </span>
+              <div>
+                <strong>Nova</strong>
+                <span><i /> Usually replies instantly</span>
+              </div>
+            </div>
+
+            <button
+              className="careers-chat-close"
+              type="button"
+              aria-label="Close careers assistant"
+              onClick={() => setIsOpen(false)}
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="careers-chat-messages" aria-live="polite">
+            {messages.map(message => (
+              <div
+                className={`careers-chat-message ${message.sender}`}
+                key={message.id}
+              >
+                {message.text}
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="careers-chat-prompts">
+            {chatPrompts.map(prompt => (
+              <button
+                type="button"
+                key={prompt}
+                onClick={() => sendMessage(prompt)}
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+
+          <form className="careers-chat-form" onSubmit={submitMessage}>
+            <input
+              value={draft}
+              onChange={event => setDraft(event.target.value)}
+              placeholder="Ask about careers..."
+              aria-label="Ask the careers assistant"
+            />
+            <button
+              type="submit"
+              aria-label="Send message"
+              disabled={!draft.trim()}
+            >
+              <Send size={16} />
+            </button>
+          </form>
+
+          <button
+            className="careers-chat-roles"
+            type="button"
+            onClick={() => {
+              onApply();
+              setIsOpen(false);
+            }}
+          >
+            Explore open roles <ArrowUpRight size={14} />
+          </button>
+        </section>
+      )}
+
+      <button
+        className="careers-chat-launcher"
+        type="button"
+        aria-label={isOpen ? 'Close careers assistant' : 'Open careers assistant'}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(currentState => !currentState)}
+      >
+        <span className="careers-chat-launcher-icon">
+          {isOpen ? <X size={21} /> : <MessageCircle size={21} />}
+        </span>
+        <span className="careers-chat-launcher-label">Chat with Nova</span>
+      </button>
+    </div>
+  );
+}
+
+function CookieConsent() {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const consent = window.localStorage.getItem('thewify-cookie-consent');
+
+    if (!consent) {
+      setIsVisible(true);
+    }
+  }, []);
+
+  const saveConsent = value => {
+    window.localStorage.setItem('thewify-cookie-consent', value);
+    setIsVisible(false);
+  };
+
+  if (!isVisible) {
+    return null;
+  }
+
+  return (
+    <aside className="cookie-consent" aria-label="Cookie consent" role="dialog">
+      <div className="cookie-consent-icon" aria-hidden="true">
+        <ShieldCheck size={19} />
+      </div>
+
+      <div className="cookie-consent-copy">
+        <strong>Your privacy matters</strong>
+        <p>
+          By clicking "Accept", you agree to the storing of cookies on your device to give you the most optimal experience using our website. We may also use cookies to enhance performance,
+           analyse site usage and to personalise your experience.
+        </p>
+      </div>
+
+      <div className="cookie-consent-actions">
+        <button
+          type="button"
+          className="cookie-consent-decline"
+          onClick={() => saveConsent('declined')}
+        >
+          Decline
+        </button>
+        <button
+          type="button"
+          className="cookie-consent-accept"
+          onClick={() => saveConsent('accepted')}
+        >
+          Accept
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeRole, setActiveRole] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [jobSearch, setJobSearch] = useState('');
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = window.localStorage.getItem('thewify-theme');
+    return savedTheme === 'light' ? 'light' : 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('thewify-theme', theme);
+  }, [theme]);
+
+  const filteredRoles = roles.filter(role => {
+    const searchableText = [
+      role.title,
+      role.team,
+      role.type,
+      role.place,
+      role.level,
+      role.desc,
+      ...role.tags
+    ].join(' ').toLowerCase();
+
+    return searchableText.includes(jobSearch.trim().toLowerCase());
+  });
 
   useEffect(() => {
     const pointerMove = event => {
@@ -136,6 +399,12 @@ function App() {
   };
 
   const closeMenu = () => setMenuOpen(false);
+
+  const searchJobs = event => {
+    event.preventDefault();
+    document.getElementById('openings')?.scrollIntoView({ behavior: 'smooth' });
+    setMenuOpen(false);
+  };
 
   const submit = e => {
     e.preventDefault();
@@ -353,9 +622,45 @@ function App() {
           <a href="#openings" onClick={closeMenu}>Open roles</a>
           <a href="#about" onClick={closeMenu}>Our story</a>
 
+          <form className="nav-search" role="search" onSubmit={searchJobs}>
+            <Search size={16} aria-hidden="true" />
+            <input
+              type="search"
+              value={jobSearch}
+              onChange={event => setJobSearch(event.target.value)}
+              placeholder="Search jobs"
+              aria-label="Search open jobs"
+            />
+            {jobSearch && (
+              <button
+                type="button"
+                className="nav-search-clear"
+                aria-label="Clear job search"
+                onClick={() => setJobSearch('')}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </form>
+
           <a className="nav-cta" href="#openings" onClick={closeMenu}>
             Find your role <ArrowUpRight size={16} />
           </a>
+
+          <button
+            className="theme-toggle"
+            type="button"
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            onClick={() => setTheme(currentTheme => (
+              currentTheme === 'dark' ? 'light' : 'dark'
+            ))}
+          >
+            <span className="theme-toggle-icon">
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </span>
+            <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+          </button>
         </nav>
       </header>
 
@@ -741,18 +1046,18 @@ function App() {
             </div>
 
             <div className="roles-count">
-              <strong>03</strong>
+              <strong>{String(filteredRoles.length).padStart(2, '0')}</strong>
               <span>
-                OPPORTUNITIES<br />
-                TO EXPLORE
+                {jobSearch ? 'MATCHING ROLES' : 'OPPORTUNITIES'}<br />
+                {jobSearch ? 'FOUND' : 'TO EXPLORE'}
               </span>
             </div>
           </div>
 
           <div className="role-list">
-            {roles.map((role, i) => (
+            {filteredRoles.map((role, i) => (
               <article
-                className="role-card reveal cyber-card"
+                className="role-card cyber-card reveal is-visible"
                 key={role.title}
               >
                 <CyberCardEffects />
@@ -785,6 +1090,17 @@ function App() {
                 </button>
               </article>
             ))}
+
+            {filteredRoles.length === 0 && (
+              <div className="roles-empty">
+                <Search size={22} />
+                <strong>No roles found</strong>
+                <p>Try a different title, skill, location or team.</p>
+                <button type="button" onClick={() => setJobSearch('')}>
+                  Clear search
+                </button>
+              </div>
+            )}
           </div>
 
           <p className="roles-footnote">
@@ -1004,30 +1320,66 @@ function App() {
             and possibilities.
           </p>
 
-          <div className="footer-links">
-            <a
-              href="https://www.thewify.com/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Main website <ArrowUpRight size={14} />
-            </a>
+          <div className="footer-connect">
+            <div className="footer-links">
+              <a
+                href="https://guestwifi.thewify.com/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Guest WiFy <ArrowUpRight size={14} />
+              </a>
 
-            <a
-              href="https://www.thewify.com/contact"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Contact <ArrowUpRight size={14} />
-            </a>
+              <a
+                href="https://www.thewify.com/contact"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Contact <ArrowUpRight size={14} />
+              </a>
+            </div>
 
-            <a
-              href="https://in.linkedin.com/company/thewify1"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Linkedin size={15} /> LinkedIn
-            </a>
+            <div className="footer-social" aria-label="Social media links">
+              <a
+                href="https://wa.me/"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="WhatsApp"
+                title="WhatsApp"
+              >
+                <MessageCircle size={17} />
+              </a>
+
+              <a
+                href="https://www.facebook.com/thewify1"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Facebook"
+                title="Facebook"
+              >
+                <Facebook size={17} />
+              </a>
+
+              <a
+                href="https://www.instagram.com/thewify.pvt.ltd?avpt=MXN5cjA3MzQ3djZsaw=="
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Instagram"
+                title="Instagram"
+              >
+                <Instagram size={17} />
+              </a>
+
+              <a
+                href="https://www.linkedin.com/company/thewify1/"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="LinkedIn"
+                title="LinkedIn"
+              >
+                <Linkedin size={17} />
+              </a>
+            </div>
           </div>
         </div>
 
@@ -1041,6 +1393,9 @@ function App() {
           <span>MADE FOR WHAT'S NEXT.</span>
         </div>
       </footer>
+
+      <CareersChat onApply={() => goToApply()} />
+      <CookieConsent />
 
     </>
   );
